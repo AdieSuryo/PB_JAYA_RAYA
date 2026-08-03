@@ -1,0 +1,308 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// enum
+enum RoleUser {
+  Admin
+  Manajemen
+  pelatih_teknik
+  Atlet
+  pelatih_fisik
+
+  @@map("role_user")
+}
+
+enum JenisKelamin {
+  Laki_Laki // Sesuaikan nilainya dengan isi database kamu
+  Perempuan
+
+  @@map("jenis_kelamin")
+}
+
+enum PeganganRaket {
+  Kanan
+  Kiri
+
+  @@map("pegangan_raket")
+}
+
+enum StatusAtlet {
+  Aktif
+  Non_Aktif
+
+  @@map("status_atlet")
+}
+
+// model
+model MUser {
+  uid_user    String   @id @db.VarChar(10)
+  username    String   @unique @db.VarChar(50)
+  password    String   @db.VarChar(255)
+  role        RoleUser
+  uid_atlet   String?  @unique @db.VarChar(10)
+  uid_pelatih String?  @unique @db.VarChar(10)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Field ID untuk Relasi Self-Relation (Audit Log User)
+  created_by_uid String? @db.VarChar(10)
+  updated_by_uid String? @db.VarChar(10)
+  deleted_by_uid String? @db.VarChar(10)
+
+  //Relasi ke tabel atlet
+  atlet_profile MAtlet? @relation("UserProfileAtlet", fields: [uid_atlet], references: [uid_atlet])
+
+  // Relasi ke tabel Pelatih
+  pelatih_profile MPelatih? @relation("UserProfilePelatih", fields: [uid_pelatih], references: [uid_pelatih])
+
+  //Relasi ke tabel RAtletPelatih
+  atlet_pelatih_created RAtletPelatih[] @relation("AtletPelatihCreator")
+
+  atlet_pelatih_updated RAtletPelatih[] @relation("AtletPelatihUpdater")
+
+  // Hubungan Relasi ke Diri Sendiri (Self-Relation)
+  creator MUser? @relation("UserCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser? @relation("UserUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("UserDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  // Field Kebalikan dari Self-Relation MUser
+  created_users MUser[] @relation("UserCreator")
+  updated_users MUser[] @relation("UserUpdater")
+  deleted_users MUser[] @relation("UserDeleter")
+
+  // Field Kebalikan dari Tabel MAtlet
+  created_atlets MAtlet[] @relation("AtletCreator")
+  updated_atlets MAtlet[] @relation("AtletUpdater")
+  deleted_atlets MAtlet[] @relation("AtletDeleter")
+
+  // Field Kebalikan dari Tabel MPelatih
+  created_pelatihhs MPelatih[] @relation("PelatihCreator")
+  updated_pelatihhs MPelatih[] @relation("PelatihUpdater")
+  deleted_pelatihhs MPelatih[] @relation("PelatihDeleter")
+
+  // Field Kebalikan dari Tabel MProvinsi
+  created_provinsis MProvinsi[] @relation("ProvinsiCreator")
+  updated_provinsis MProvinsi[] @relation("ProvinsiUpdater")
+  deleted_provinsis MProvinsi[] @relation("ProvinsiDeleter")
+
+  // Field Kebalikan dari Tabel MJenisPelatih
+  created_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihCreator")
+  updated_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihUpdater")
+  deleted_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihDeleter")
+
+  // Field Kebalikan dari Tabel RPelatihJenisPelatih
+  created_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihCreator")
+  updated_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihUpdater")
+  deleted_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihDeleter")
+
+  @@map("m_user")
+}
+
+model MAtlet {
+  uid_atlet      String        @id @db.VarChar(10)
+  nik            String        @unique @db.VarChar(20)
+  id_pbsi        String        @db.VarChar(20)
+  nama_lengkap   String        @db.VarChar(100)
+  nama_ayah      String        @db.VarChar(100)
+  nama_ibu       String        @db.VarChar(100)
+  tempat_lahir   String        @db.VarChar(100)
+  tanggal_lahir  DateTime      @db.Date
+  alamat         String        @db.Text
+  jenis_kelamin  JenisKelamin
+  pegangan_raket PeganganRaket
+  tinggi_badan   Int
+  berat_badan    Int
+  status_atlet   StatusAtlet
+  foto           String        @db.VarChar(255)
+
+  // Relasi Utama User
+  user_akun MUser? @relation("UserProfileAtlet")
+
+  //Relasi ke Pelatih
+  pelatih_atlet RAtletPelatih[] @relation("AtletPelatihAtlet")
+
+  // Relasi Utama ke MProvinsi
+  uid_provinsi String    @db.VarChar(10)
+  provinsi     MProvinsi @relation(fields: [uid_provinsi], references: [uid_provinsi])
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Field ID untuk Audit Log MUser
+  created_by_uid String  @db.VarChar(10)
+  updated_by_uid String  @db.VarChar(10)
+  deleted_by_uid String? @db.VarChar(10)
+
+  // Hubungan Relasi ke MUser (Log)
+  creator MUser  @relation("AtletCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser  @relation("AtletUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("AtletDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  @@map("m_atlet")
+}
+
+model MPelatih {
+  uid_pelatih               String       @id @db.VarChar(10)
+  nik                       String       @unique @db.VarChar(20)
+  nama_lengkap              String       @db.VarChar(100)
+  jenis_kelamin             JenisKelamin
+  tanggal_lahir             DateTime     @db.Date
+  tahun_bergabung           Int // Tipe data 'year' dipetakan ke Int
+  pernah_melatih_sebelumnya Boolean
+  klub_negara_sebelumnya    String       @db.VarChar(100)
+  mantan_atlet_nasional     Boolean
+  asal_klub_nasional        String       @db.VarChar(100)
+  mantan_pelatnas           Boolean
+  tahun_pelatnas            Int // Tipe data 'year' dipetakan ke Int
+  foto                      String       @db.VarChar(255)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Relasi ke tabel user
+  user_akun MUser? @relation("UserProfilePelatih")
+
+  //Relasi ke Atlet
+  pelatih_atlet RAtletPelatih[] @relation("AtletPelatihPelatih")
+
+  //Relasi ke Jenis Pelatih
+  jenis_pelatih RPelatihJenisPelatih[]
+
+  // Relasi Utama ke MProvinsi
+  uid_provinsi String    @db.VarChar(10)
+  provinsi     MProvinsi @relation(fields: [uid_provinsi], references: [uid_provinsi])
+
+  // Field ID untuk Audit Log MUser
+  created_by_uid String  @db.VarChar(10)
+  updated_by_uid String  @db.VarChar(10)
+  deleted_by_uid String? @db.VarChar(10)
+
+  // Hubungan Relasi ke MUser (Log)
+  creator MUser  @relation("PelatihCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser  @relation("PelatihUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("PelatihDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  @@map("m_pelatih")
+}
+
+model MProvinsi {
+  uid_provinsi  String @id @db.VarChar(10)
+  nama_provinsi String @db.VarChar(100)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Field ID untuk Audit Log MUser
+  created_by_uid String  @db.VarChar(10)
+  updated_by_uid String  @db.VarChar(10)
+  deleted_by_uid String? @db.VarChar(10)
+
+  // Hubungan Relasi ke MUser (Log)
+  creator MUser  @relation("ProvinsiCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser  @relation("ProvinsiUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("ProvinsiDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  // Field Kebalikan untuk Relasi MAtlet
+  atlets MAtlet[]
+  coachs MPelatih[]
+
+  @@map("m_provinsi")
+}
+
+model RAtletPelatih {
+  uid_atlet_pelatih String @id @db.VarChar(10)
+
+  uid_atlet   String @db.VarChar(10)
+  uid_pelatih String @db.VarChar(10)
+
+  atlet MAtlet @relation("AtletPelatihAtlet", fields: [uid_atlet], references: [uid_atlet])
+
+  pelatih MPelatih @relation("AtletPelatihPelatih", fields: [uid_pelatih], references: [uid_pelatih])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by_uid String @db.VarChar(10)
+  updated_by_uid String @db.VarChar(10)
+
+  deleted_at     DateTime?
+  deleted_by_uid String?
+
+  creator MUser @relation("AtletPelatihCreator", fields: [created_by_uid], references: [uid_user])
+
+  updater MUser @relation("AtletPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
+
+  // Primary Key Composite
+  @@unique([uid_atlet, uid_pelatih])
+  @@map("r_AtletPelatih")
+}
+
+//Master Jenis Pelatih
+
+model MJenisPelatih {
+  uid_jenis_pelatih  String @id @db.VarChar(10)
+  nama_jenis_pelatih String @db.VarChar(100)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  // Field ID untuk Audit Log MUser
+  created_by_uid String  @db.VarChar(10)
+  updated_by_uid String  @db.VarChar(10)
+  deleted_by_uid String? @db.VarChar(10)
+
+  // Hubungan Relasi ke MUser (Log)
+  creator MUser  @relation("JenisPelatihCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser  @relation("JenisPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("JenisPelatihDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  pelatih_jenis_pelatih RPelatihJenisPelatih[]
+
+  @@map("m_jenis_pelatih")
+}
+
+//Relasi Jenis Pelatih ke Pelatih
+
+model RPelatihJenisPelatih {
+  uid_pelatih_jenis_pelatih String @id @db.VarChar(10)
+
+  uid_pelatih       String @db.VarChar(10)
+  uid_jenis_pelatih String @db.VarChar(10)
+
+  pelatih       MPelatih      @relation(fields: [uid_pelatih], references: [uid_pelatih])
+  jenis_pelatih MJenisPelatih @relation(fields: [uid_jenis_pelatih], references: [uid_jenis_pelatih])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by_uid String @db.VarChar(10)
+  updated_by_uid String @db.VarChar(10)
+
+  deleted_at     DateTime?
+  deleted_by_uid String?
+
+  creator MUser  @relation("PelatihJenisPelatihCreator", fields: [created_by_uid], references: [uid_user])
+  updater MUser  @relation("PelatihJenisPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
+  deleter MUser? @relation("PelatihJenisPelatihDeleter", fields: [deleted_by_uid], references: [uid_user])
+
+  // Primary Key Composite
+  @@unique([uid_pelatih, uid_jenis_pelatih])
+  @@map("r_PelatihJenisPelatih")
+}

@@ -1,0 +1,1 @@
+export { default as provinsiRoutes } from "./provinsi.routes.js";

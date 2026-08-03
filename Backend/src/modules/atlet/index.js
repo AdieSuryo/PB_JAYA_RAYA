@@ -1,0 +1,1 @@
+export { default as atletRoutes } from "./atlet.routes.js";

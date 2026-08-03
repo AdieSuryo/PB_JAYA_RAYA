@@ -1,0 +1,1 @@
+export { default as pelatihRoutes } from "./pelatih.routes.js";
