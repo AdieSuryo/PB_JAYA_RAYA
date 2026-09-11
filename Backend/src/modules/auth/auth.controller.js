@@ -36,13 +36,17 @@ const authController = {
                 req.body
             );
 
+            const roleNames = result.user.roles
+                .map((role) => role.nama_role)
+                .join(", ");
+
             return successResponse(
                 res,
                 {
                     token: result.token,
                     user: result.user
                 },
-                `Login sukses sebagai ${result.user.role}`,
+                `Login sukses sebagai ${roleNames}`,
                 HTTP_STATUS.OK
             );
 

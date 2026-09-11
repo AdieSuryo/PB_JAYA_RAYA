@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "public"."m_role" ALTER COLUMN "nama_role" SET DATA TYPE VARCHAR(50),
+ALTER COLUMN "kode_role" SET DATA TYPE VARCHAR(50),
+ALTER COLUMN "deskripsi" SET DATA TYPE VARCHAR(50);

@@ -2,6 +2,7 @@ import atletRepository from "./atlet.repository.js";
 import { generateUID } from "../../utils/generateUID.js";
 import AppError from "../../errors/AppError.js";
 import HTTP_STATUS from "../../constants/httpStatus.js";
+import {uploadImage } from "../../utils/cloudinaryHelper.js";
 
 const atletService = {
 
@@ -41,7 +42,7 @@ const atletService = {
     },
 
     // CREATE
-    createAtlet: async (body, actor) => {
+    createAtlet: async (body, file, actor) => {
 
         //Cek NIK
         const nikExist = await atletRepository.findByNik(body.nik);
@@ -59,6 +60,18 @@ const atletService = {
             "ATL"
         );
 
+        let fotoUrl = null;
+
+        if (file) {
+            
+            const uploadResult = await uploadImage(
+                file.buffer,
+                "atlet"
+            );
+
+            fotoUrl = uploadResult.secure_url;
+        }
+
         const {
             nik,
             id_pbsi,
@@ -72,8 +85,7 @@ const atletService = {
             pegangan_raket,
             tinggi_badan,
             berat_badan,
-            status_atlet,
-            foto,
+            status_atlet,         
             uid_provinsi
         } = body;
 
@@ -96,13 +108,19 @@ const atletService = {
 
             pegangan_raket,
 
-            tinggi_badan,
+            tinggi_badan:
+                tinggi_badan
+                    ? parseInt(tinggi_badan)
+                    : null,
 
-            berat_badan,
+            berat_badan:
+                berat_badan
+                    ? parseInt(berat_badan)
+                    : null,
 
             status_atlet,
 
-            foto,
+            foto: fotoUrl,
 
             uid_provinsi,
 
@@ -129,6 +147,20 @@ const atletService = {
         if (body.tanggal_lahir) {
             body.tanggal_lahir =
                 new Date(body.tanggal_lahir);
+        }
+
+        if (body.tinggi_badan !== undefined) {
+            body.tinggi_badan =
+                body.tinggi_badan !== ""
+                    ? parseInt(body.tinggi_badan)
+                    : null;
+        }
+
+        if (body.berat_badan !== undefined) {
+            body.berat_badan =
+                body.berat_badan !== ""
+                    ? parseInt(body.berat_badan)
+                    : null;
         }
 
         return await atletRepository.update(

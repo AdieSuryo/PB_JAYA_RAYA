@@ -13,15 +13,6 @@ datasource db {
 }
 
 // enum
-enum RoleUser {
-  Admin
-  Manajemen
-  pelatih_teknik
-  Atlet
-  pelatih_fisik
-
-  @@map("role_user")
-}
 
 enum JenisKelamin {
   Laki_Laki // Sesuaikan nilainya dengan isi database kamu
@@ -46,12 +37,11 @@ enum StatusAtlet {
 
 // model
 model MUser {
-  uid_user    String   @id @db.VarChar(10)
-  username    String   @unique @db.VarChar(50)
-  password    String   @db.VarChar(255)
-  role        RoleUser
-  uid_atlet   String?  @unique @db.VarChar(10)
-  uid_pelatih String?  @unique @db.VarChar(10)
+  uid_user    String  @id @db.VarChar(10)
+  username    String  @unique @db.VarChar(50)
+  password    String  @db.VarChar(255)
+  uid_atlet   String? @unique @db.VarChar(10)
+  uid_pelatih String? @unique @db.VarChar(10)
 
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
@@ -62,16 +52,14 @@ model MUser {
   updated_by_uid String? @db.VarChar(10)
   deleted_by_uid String? @db.VarChar(10)
 
+  // Relasi ke Tabel Role
+  user_roles RUserRole[]
+
   //Relasi ke tabel atlet
   atlet_profile MAtlet? @relation("UserProfileAtlet", fields: [uid_atlet], references: [uid_atlet])
 
   // Relasi ke tabel Pelatih
   pelatih_profile MPelatih? @relation("UserProfilePelatih", fields: [uid_pelatih], references: [uid_pelatih])
-
-  //Relasi ke tabel RAtletPelatih
-  atlet_pelatih_created RAtletPelatih[] @relation("AtletPelatihCreator")
-
-  atlet_pelatih_updated RAtletPelatih[] @relation("AtletPelatihUpdater")
 
   // Hubungan Relasi ke Diri Sendiri (Self-Relation)
   creator MUser? @relation("UserCreator", fields: [created_by_uid], references: [uid_user])
@@ -89,26 +77,49 @@ model MUser {
   deleted_atlets MAtlet[] @relation("AtletDeleter")
 
   // Field Kebalikan dari Tabel MPelatih
-  created_pelatihhs MPelatih[] @relation("PelatihCreator")
-  updated_pelatihhs MPelatih[] @relation("PelatihUpdater")
-  deleted_pelatihhs MPelatih[] @relation("PelatihDeleter")
+  created_pelatihs MPelatih[] @relation("PelatihCreator")
+  updated_pelatihs MPelatih[] @relation("PelatihUpdater")
+  deleted_pelatihs MPelatih[] @relation("PelatihDeleter")
 
   // Field Kebalikan dari Tabel MProvinsi
   created_provinsis MProvinsi[] @relation("ProvinsiCreator")
   updated_provinsis MProvinsi[] @relation("ProvinsiUpdater")
   deleted_provinsis MProvinsi[] @relation("ProvinsiDeleter")
 
-  // Field Kebalikan dari Tabel MJenisPelatih
-  created_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihCreator")
-  updated_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihUpdater")
-  deleted_jenis_pelatihs MJenisPelatih[] @relation("JenisPelatihDeleter")
-
-  // Field Kebalikan dari Tabel RPelatihJenisPelatih
-  created_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihCreator")
-  updated_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihUpdater")
-  deleted_pelatih_jenis_pelatihs RPelatihJenisPelatih[] @relation("PelatihJenisPelatihDeleter")
-
   @@map("m_user")
+}
+
+model MRole {
+  uid_role     String  @id @db.VarChar(10)
+  nama_role    String  @unique @db.VarChar(50)
+  kode_role    String  @unique @db.VarChar(50)
+  deskripsi    String  @db.VarChar(50)
+  status_aktif Boolean @default(true)
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+
+  user_roles RUserRole[]
+
+  role_menus RRoleMenu[]
+
+  role_permissions RRolePermission[]
+
+  @@map("m_role")
+}
+
+model RUserRole {
+  uid_user String @db.VarChar(10)
+  uid_role String @db.VarChar(10)
+
+  created_at DateTime @default(now())
+
+  user MUser @relation(fields: [uid_user], references: [uid_user])
+  role MRole @relation(fields: [uid_role], references: [uid_role])
+
+  @@id([uid_user, uid_role])
+  @@map("r_user_role")
 }
 
 model MAtlet {
@@ -130,9 +141,6 @@ model MAtlet {
 
   // Relasi Utama User
   user_akun MUser? @relation("UserProfileAtlet")
-
-  //Relasi ke Pelatih
-  pelatih_atlet RAtletPelatih[] @relation("AtletPelatihAtlet")
 
   // Relasi Utama ke MProvinsi
   uid_provinsi String    @db.VarChar(10)
@@ -163,11 +171,11 @@ model MPelatih {
   tanggal_lahir             DateTime     @db.Date
   tahun_bergabung           Int // Tipe data 'year' dipetakan ke Int
   pernah_melatih_sebelumnya Boolean
-  klub_negara_sebelumnya    String       @db.VarChar(100)
+  klub_negara_sebelumnya    String?       @db.VarChar(100)
   mantan_atlet_nasional     Boolean
-  asal_klub_nasional        String       @db.VarChar(100)
+  asal_klub_nasional        String?       @db.VarChar(100)
   mantan_pelatnas           Boolean
-  tahun_pelatnas            Int // Tipe data 'year' dipetakan ke Int
+  tahun_pelatnas            Int? // Tipe data 'year' dipetakan ke Int
   foto                      String       @db.VarChar(255)
 
   created_at DateTime  @default(now())
@@ -176,12 +184,6 @@ model MPelatih {
 
   // Relasi ke tabel user
   user_akun MUser? @relation("UserProfilePelatih")
-
-  //Relasi ke Atlet
-  pelatih_atlet RAtletPelatih[] @relation("AtletPelatihPelatih")
-
-  //Relasi ke Jenis Pelatih
-  jenis_pelatih RPelatihJenisPelatih[]
 
   // Relasi Utama ke MProvinsi
   uid_provinsi String    @db.VarChar(10)
@@ -225,84 +227,80 @@ model MProvinsi {
   @@map("m_provinsi")
 }
 
-model RAtletPelatih {
-  uid_atlet_pelatih String @id @db.VarChar(10)
+// Menu untuk sidebar masing masing Role
+model MMenu {
+  uid_menu  String  @id @db.VarChar(10)
+  nama_menu String  @db.VarChar(100)
+  kode_menu String  @unique @db.VarChar(100)
+  route     String? @db.VarChar(255)
+  icon      String? @db.VarChar(100)
 
-  uid_atlet   String @db.VarChar(10)
-  uid_pelatih String @db.VarChar(10)
+  // Parent-child menu
+  uid_parent String? @db.VarChar(10)
 
-  atlet MAtlet @relation("AtletPelatihAtlet", fields: [uid_atlet], references: [uid_atlet])
-
-  pelatih MPelatih @relation("AtletPelatihPelatih", fields: [uid_pelatih], references: [uid_pelatih])
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  created_by_uid String @db.VarChar(10)
-  updated_by_uid String @db.VarChar(10)
-
-  deleted_at     DateTime?
-  deleted_by_uid String?
-
-  creator MUser @relation("AtletPelatihCreator", fields: [created_by_uid], references: [uid_user])
-
-  updater MUser @relation("AtletPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
-
-  // Primary Key Composite
-  @@unique([uid_atlet, uid_pelatih])
-  @@map("r_AtletPelatih")
-}
-
-//Master Jenis Pelatih
-
-model MJenisPelatih {
-  uid_jenis_pelatih  String @id @db.VarChar(10)
-  nama_jenis_pelatih String @db.VarChar(100)
+  urutan       Int     @default(0)
+  status_aktif Boolean @default(true)
 
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
   deleted_at DateTime?
 
-  // Field ID untuk Audit Log MUser
-  created_by_uid String  @db.VarChar(10)
-  updated_by_uid String  @db.VarChar(10)
-  deleted_by_uid String? @db.VarChar(10)
+  parent MMenu? @relation("MenuHierarchy", fields: [uid_parent], references: [uid_menu])
 
-  // Hubungan Relasi ke MUser (Log)
-  creator MUser  @relation("JenisPelatihCreator", fields: [created_by_uid], references: [uid_user])
-  updater MUser  @relation("JenisPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
-  deleter MUser? @relation("JenisPelatihDeleter", fields: [deleted_by_uid], references: [uid_user])
+  children MMenu[] @relation("MenuHierarchy")
 
-  pelatih_jenis_pelatih RPelatihJenisPelatih[]
+  // Relasi RBAC
+  role_menus  RRoleMenu[]
+  permissions MPermission[]
 
-  @@map("m_jenis_pelatih")
+  @@map("m_menu")
 }
 
-//Relasi Jenis Pelatih ke Pelatih
+model MPermission {
+  uid_permission  String @id @db.VarChar(10)
+  kode_permission String @unique @db.VarChar(100)
+  nama_permission String @db.VarChar(100)
+  action          String @db.VarChar(50)
 
-model RPelatihJenisPelatih {
-  uid_pelatih_jenis_pelatih String @id @db.VarChar(10)
+  uid_menu String @db.VarChar(10)
 
-  uid_pelatih       String @db.VarChar(10)
-  uid_jenis_pelatih String @db.VarChar(10)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
 
-  pelatih       MPelatih      @relation(fields: [uid_pelatih], references: [uid_pelatih])
-  jenis_pelatih MJenisPelatih @relation(fields: [uid_jenis_pelatih], references: [uid_jenis_pelatih])
+  // Relasi Menu
+  menu MMenu @relation(fields: [uid_menu], references: [uid_menu])
+
+  // Relasi Role
+  role_permissions RRolePermission[]
+
+  @@map("m_permission")
+}
+
+model RRoleMenu {
+  uid_role String @db.VarChar(10)
+  uid_menu String @db.VarChar(10)
 
   created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
 
-  created_by_uid String @db.VarChar(10)
-  updated_by_uid String @db.VarChar(10)
+  role MRole @relation(fields: [uid_role], references: [uid_role])
 
-  deleted_at     DateTime?
-  deleted_by_uid String?
+  menu MMenu @relation(fields: [uid_menu], references: [uid_menu])
 
-  creator MUser  @relation("PelatihJenisPelatihCreator", fields: [created_by_uid], references: [uid_user])
-  updater MUser  @relation("PelatihJenisPelatihUpdater", fields: [updated_by_uid], references: [uid_user])
-  deleter MUser? @relation("PelatihJenisPelatihDeleter", fields: [deleted_by_uid], references: [uid_user])
+  @@id([uid_role, uid_menu])
+  @@map("r_role_menu")
+}
 
-  // Primary Key Composite
-  @@unique([uid_pelatih, uid_jenis_pelatih])
-  @@map("r_PelatihJenisPelatih")
+model RRolePermission {
+  uid_role       String @db.VarChar(10)
+  uid_permission String @db.VarChar(10)
+
+  created_at DateTime @default(now())
+
+  role MRole @relation(fields: [uid_role], references: [uid_role])
+
+  permission MPermission @relation(fields: [uid_permission], references: [uid_permission])
+
+  @@id([uid_role, uid_permission])
+  @@map("r_role_permission")
 }

@@ -39,6 +39,20 @@ const userController = {
             );
         }
     ),
+
+    // Get User Management
+    getManagementData: asyncHandler(
+        async (req, res, next) => {
+            const data = await userService.getManagementData();
+
+            return successResponse(
+                res,
+                data,
+                "Data manajemen berhasil diambil",
+                HTTP_STATUS.OK
+            )
+        }
+    ),
     
 
     // ===========================
@@ -85,7 +99,7 @@ const userController = {
     
 
     // ===========================
-    // DELETE USER
+    // SOFT DELETE USER
     // ===========================
     deleteUser: asyncHandler(
         async (req, res) => {
@@ -102,7 +116,45 @@ const userController = {
                 HTTP_STATUS.OK
             );
         }
-    )
+    ),
+
+    // Reactive User
+    reactiveUser: asyncHandler(
+        async (req, res) => {
+
+            const user =
+                await userService.reactiveUser(
+                    req.params.id,
+                    req.user
+                );
+
+            return successResponse(
+                res,
+                user,
+                "User berhasil diaktifkan kemabali",
+                HTTP_STATUS.OK
+            );
+        }
+    ),
+
+    // HARD DELETE
+    deleteUserPermanent: asyncHandler(async (req, res) => {
+
+        const uid_user = req.params.id;
+
+        const result = 
+            await userService.deleteUserPermanent(
+                uid_user,
+                req.user
+            );
+
+        return successResponse(
+            res,
+            result,
+            "User berhasil dihapus permanen",
+            HTTP_STATUS.OK
+        );
+    })
 
 };
 

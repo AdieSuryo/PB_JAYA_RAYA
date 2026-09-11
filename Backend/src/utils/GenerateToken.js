@@ -4,9 +4,10 @@ const generateToken = (user) => {
     return jwt.sign(
         {
             uid_user: user.uid_user,
-            role: user.role,
-            uid_atlet: user.uid_atlet,
-            uid_pelatih: user.uid_pelatih
+            username: user.username,
+            roles: user.roles,
+            uid_atlet: user.uid_atlet || null,
+            uid_pelatih: user.uid_pelatih || null
         },
         process.env.JWT_SECRET,
         {

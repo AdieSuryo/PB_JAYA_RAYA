@@ -29,20 +29,24 @@ export const createUserSchema = Joi.object({
                 "Password wajib diisi."
         }),
 
-    role: Joi.string()
-        .valid(
-            "Admin",
-            "Manajemen",
-            "Atlet",
-            "pelatih_teknik",
-            "pelatih_fisik"
+    roles: Joi.array()
+        .items(
+            Joi.string().valid(
+                "ADMIN",
+                "PELATIH_TEKNIK",
+                "PELATIH_FISIK",
+                "ATLET"
+            )
         )
+        .min(1)
+        .unique()
         .required()
         .messages({
-            "any.only":
-                "Role harus Admin, Manajemen, Atlet, pelatih_teknik, atau pelatih_fisik.",
-            "any.required":
-                "Role wajib diisi."
+            "array.base": "Roles harus berupa array.",
+            "array.min": "Minimal satu role wajib dipilih.",
+            "array.unique": "Role tidak boleh duplikat.",
+            "any.required": "Role wajib diisi.",
+            "any.only": "Role tidak valid."
         }),
 
     uid_atlet: Joi.string()
@@ -88,18 +92,24 @@ export const updateUserSchema = Joi.object({
                 "Password minimal 6 karakter."
         }),
 
-    role: Joi.string()
-        .valid(
-            "Admin",
-            "Manajemen",
-            "Atlet",
-            "pelatih_teknik",
-            "pelatih_fisik"
+    roles: Joi.array()
+        .items(
+            Joi.string().valid(
+                "ADMIN",
+                "PELATIH_TEKNIK",
+                "PELATIH_FISIK",
+                "ATLET"
+            )
         )
+        .min(1)
+        .unique()
         .optional()
         .messages({
-            "any.only":
-                "Role harus Admin, Manajemen, Atlet, pelatih_teknik, atau pelatih_fisik."
+            "array.base": "Roles harus berupa array.",
+            "array.min": "Minimal satu role wajib dipilih.",
+            "array.unique": "Role tidak boleh duplikat.",
+            "any.required": "Role wajib diisi.",
+            "any.only": "Role tidak valid."
         }),
 
     uid_atlet: Joi.string()

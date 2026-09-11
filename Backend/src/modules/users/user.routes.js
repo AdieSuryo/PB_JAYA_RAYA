@@ -5,6 +5,7 @@ import userController from "./user.controller.js";
 import authMiddleware from "../../middleware/authMiddleware.js";
 import authorize from "../../middleware/roleMiddleware.js";
 import validate from "../../middleware/validationMiddleware.js";
+import authorizePermission from "../../middleware/authorizePermission.js";
 
 import {
     createUserSchema,
@@ -19,8 +20,23 @@ const router = express.Router();
 router.get(
     "/",
     authMiddleware,
-    authorize("Admin", "Manajemen"),
+    authorizePermission("user.read"),
     userController.getAllUsers
+);
+
+// Get Management User
+router.get(
+    "/management",
+    authMiddleware,
+    authorizePermission("user.read"),
+    userController.getManagementData
+);
+
+router.patch(
+    "/:id/activate",
+    authMiddleware,
+    authorizePermission("user.update"),
+    userController.reactiveUser
 );
 
 // ===========================
@@ -29,7 +45,7 @@ router.get(
 router.get(
     "/:id",
     authMiddleware,
-    authorize("Admin", "Manajemen"),
+    authorizePermission("user.read"),
     userController.getUserById
 );
 
@@ -39,7 +55,7 @@ router.get(
 router.post(
     "/",
     authMiddleware,
-    authorize("Admin", "Manajemen"),
+    authorizePermission("user.create"),
     validate(createUserSchema),
     userController.createUserByManager
 );
@@ -50,19 +66,27 @@ router.post(
 router.put(
     "/:id",
     authMiddleware,
-    authorize("Admin", "Manajemen"),
+    authorizePermission("user.update"),
     validate(updateUserSchema),
     userController.updateUser
 );
 
 // ===========================
-// DELETE USER
+// SOFT DELETE USER
 // ===========================
 router.delete(
     "/:id",
     authMiddleware,
-    authorize("Admin"),
+    authorizePermission("user.delete"),
     userController.deleteUser
+);
+
+// HARD DELETE
+router.delete(
+    "/:id/permanent",
+    authMiddleware,
+    authorizePermission("user.delete_permanent"),
+    userController.deleteUserPermanent
 );
 
 export default router;

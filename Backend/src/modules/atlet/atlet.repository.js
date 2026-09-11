@@ -10,6 +10,10 @@ const atletRepository = {
         deleted_at: null,
       },
 
+      orderBy: {
+        created_at: "desc",
+      },
+
       include: {
         provinsi: true,
         user_akun: true,

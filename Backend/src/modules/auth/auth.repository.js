@@ -18,7 +18,13 @@ const authRepository = {
 
                 atlet_profile: true,
 
-                pelatih_profile: true
+                pelatih_profile: true,
+
+                user_roles: {
+                    include: {
+                        role: true
+                    }
+                }
 
             }
 

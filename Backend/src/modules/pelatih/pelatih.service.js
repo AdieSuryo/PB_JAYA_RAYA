@@ -2,6 +2,8 @@ import pelatihRepository from "./pelatih.repository.js";
 import { generateUID } from "../../utils/generateUID.js";
 import AppError from "../../errors/AppError.js";
 import HTTP_STATUS from "../../constants/httpStatus.js";
+import { uploadImage } from "../../utils/cloudinaryHelper.js";
+import { connect } from "node:http2";
 
 const pelatihService = {
 
@@ -54,7 +56,7 @@ const pelatihService = {
     // ======================================
     // CREATE
     // ======================================
-    createPelatih: async (body, actor) => {
+    createPelatih: async (body, file, actor) => {
 
         // Cek NIK
         const nikExist =
@@ -75,8 +77,19 @@ const pelatihService = {
             "PLT"
         );
 
-        const {
+        let fotoUrl = null;
 
+        if (file) {
+
+            const uploadResult = await uploadImage(
+                file.buffer,
+                "pelatih"
+            );
+
+            fotoUrl = uploadResult.secure_url;
+        }
+
+       const {
             nik,
             nama_lengkap,
             jenis_kelamin,
@@ -88,13 +101,10 @@ const pelatihService = {
             asal_klub_nasional,
             mantan_pelatnas,
             tahun_pelatnas,
-            foto,
             uid_provinsi
-
         } = body;
 
-        return await pelatihRepository.create({
-
+       return await pelatihRepository.create({
             uid_pelatih,
 
             nik,
@@ -104,18 +114,55 @@ const pelatihService = {
             tanggal_lahir:
                 new Date(tanggal_lahir),
 
-            tahun_bergabung,
-            pernah_melatih_sebelumnya,
-            klub_negara_sebelumnya,
-            mantan_atlet_nasional,
-            asal_klub_nasional,
-            mantan_pelatnas,
-            tahun_pelatnas,
-            foto,
-            uid_provinsi,
+            tahun_bergabung:
+                parseInt(tahun_bergabung),
 
-            created_by_uid: actor.uid_user,
-            updated_by_uid: actor.uid_user
+            pernah_melatih_sebelumnya:
+                pernah_melatih_sebelumnya === "true",
+
+            klub_negara_sebelumnya:
+                pernah_melatih_sebelumnya === "true"
+                    ? klub_negara_sebelumnya
+                    : null,
+
+            mantan_atlet_nasional:
+                mantan_atlet_nasional === "true",
+
+            asal_klub_nasional:
+                mantan_atlet_nasional === "true"
+                    ? asal_klub_nasional
+                    : null,
+
+            mantan_pelatnas:
+                mantan_pelatnas === "true",
+
+            tahun_pelatnas:
+                mantan_pelatnas === "true" &&
+                tahun_pelatnas
+                    ? parseInt(tahun_pelatnas)
+                    : null,
+
+            foto: fotoUrl,
+
+            provinsi: {
+                connect: {
+                    uid_provinsi
+                }
+            },
+
+            creator: {
+                connect: {
+                    uid_user:
+                        actor.uid_user
+                }
+            },
+
+            updater: {
+                connect: {
+                    uid_user:
+                        actor.uid_user
+                }
+            }
 
         });
 

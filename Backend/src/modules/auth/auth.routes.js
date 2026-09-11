@@ -23,7 +23,7 @@ router.post(
 
     authMiddleware,
 
-    authorize("Admin"),
+    authorize("SUPERADMIN"),
 
     validate(registerAdminSchema),
 

@@ -34,6 +34,224 @@ const userService = {
     },
 
     // ===========================
+    // GET USER MANAGEMENT DATA
+    // ===========================
+    getManagementData: async () => {
+
+        const {
+            atlet,
+            pelatih,
+            users
+        } =
+            await userRepository
+                .getManagementData();
+
+
+        // ===========================
+        // MAP USER BERDASARKAN PROFILE
+        // ===========================
+
+        const userByAtlet =
+            new Map();
+
+        const userByPelatih =
+            new Map();
+
+
+        users.forEach((user) => {
+
+            if (user.uid_atlet) {
+                userByAtlet.set(
+                    user.uid_atlet,
+                    user
+                );
+            }
+
+            if (user.uid_pelatih) {
+                userByPelatih.set(
+                    user.uid_pelatih,
+                    user
+                );
+            }
+
+        });
+
+
+        // ===========================
+        // DATA ATLET
+        // ===========================
+
+        const atletData =
+            atlet.map((item) => {
+
+                const account =
+                    userByAtlet.get(
+                        item.uid_atlet
+                    );
+
+                return {
+
+                    nama:
+                        item.nama_lengkap,
+
+                    tipe:
+                        "Atlet",
+
+                    uid_profile:
+                        item.uid_atlet,
+
+                    nik:
+                        item.nik,
+
+                    punya_akun:
+                        !!account,
+
+                    status_akun:
+                        !account
+                            ? "BELUM_PUNYA_AKUN"
+                            : account.deleted_at
+                                ? "NONAKTIF"
+                                : "AKTIF",
+
+                    account:
+                        account
+                            ? {
+                                uid_user:
+                                    account.uid_user,
+
+                                username:
+                                    account.username,
+
+                                roles:
+                                    account.user_roles.map(
+                                        (item) =>
+                                            item.role
+                                    )
+                            }
+                            : null
+
+                };
+
+            });
+
+
+        // ===========================
+        // DATA PELATIH
+        // ===========================
+
+        const pelatihData =
+            pelatih.map((item) => {
+
+                const account =
+                    userByPelatih.get(
+                        item.uid_pelatih
+                    );
+
+                return {
+
+                    nama:
+                        item.nama_lengkap,
+
+                    tipe:
+                        "Pelatih",
+
+                    uid_profile:
+                        item.uid_pelatih,
+
+                    nik:
+                        item.nik,
+
+                    punya_akun:
+                        !!account,
+
+                    status_akun:
+                        !account
+                            ? "BELUM_PUNYA_AKUN"
+                            : account.deleted_at
+                                ? "NONAKTIF"
+                                : "AKTIF",
+
+                    account:
+                        account
+                            ? {
+                                uid_user:
+                                    account.uid_user,
+
+                                username:
+                                    account.username,
+
+                                roles:
+                                    account.user_roles.map(
+                                        (item) =>
+                                            item.role
+                                    )
+                            }
+                            : null
+
+                };
+
+            });
+
+
+        // ===========================
+        // SUMMARY
+        // ===========================
+
+        return {
+
+            summary: {
+
+                atlet: {
+
+                    total:
+                        atletData.length,
+
+                    punya_akun:
+                        atletData.filter(
+                            (item) =>
+                                item.punya_akun
+                        ).length,
+
+                    belum_akun:
+                        atletData.filter(
+                            (item) =>
+                                !item.punya_akun
+                        ).length
+
+                },
+
+                pelatih: {
+
+                    total:
+                        pelatihData.length,
+
+                    punya_akun:
+                        pelatihData.filter(
+                            (item) =>
+                                item.punya_akun
+                        ).length,
+
+                    belum_akun:
+                        pelatihData.filter(
+                            (item) =>
+                                !item.punya_akun
+                        ).length
+
+                }
+
+            },
+
+
+            users: [
+                ...atletData,
+                ...pelatihData
+            ]
+
+        };
+
+    },
+
+    // ===========================
     // CREATE USER
     // ===========================
     createUser: async (body, actor) => {
@@ -41,19 +259,45 @@ const userService = {
         const {
             username,
             password,
-            role,
+            roles,
             uid_atlet,
             uid_pelatih
         } = body;
 
+        // Validasi Role
         if (
-            actor.role === "Manajemen" &&
-            role === "Admin"
+            !roles ||
+            !Array.isArray(roles) ||
+            roles.length === 0
         ) {
             throw new AppError(
-                "Manager tidak memiliki izin untuk membuat user Admin",
-                HTTP_STATUS.FORBIDDEN  
-            )
+                "Minimal satu role wajib dipilih",
+                HTTP_STATUS.BAD_REQUEST 
+            );
+        }
+
+        // Hilangkan role duplicate
+        const uniqueRoles = [...new Set(roles)];
+
+        // Superadmin tidak boleh dibuat dari create user biasa
+        if (uniqueRoles.includes("SUPERADMIN")) {
+
+            throw new AppError(
+                "Role Superadmin tidak dapat dibuat melalui menu User",
+                HTTP_STATUS.FORBIDDEN
+            );
+        }
+
+        if (
+            uniqueRoles.includes("ADMIN") &&
+            !actor.roles?.includes("SUPERADMIN")
+        ) {
+
+            throw new AppError(
+                "Hanya Superadmin yang dapat membuat user Admin",
+                HTTP_STATUS.FORBIDDEN
+            );
+
         }
 
         // Cek username
@@ -65,6 +309,24 @@ const userService = {
                 "Username sudah digunakan",
                 HTTP_STATUS.CONFLICT
             );
+        }
+
+        //Cari role di database
+        const roleRecords =
+            await userRepository.findRolesByCodes(
+                uniqueRoles
+            );
+
+        if (
+            roleRecords.length !==
+            uniqueRoles.length
+        ) {
+
+            throw new AppError(
+                "Terdapat role yang tidak valid",
+                HTTP_STATUS.BAD_REQUEST
+            );
+
         }
 
         // Generate UID
@@ -79,23 +341,28 @@ const userService = {
             await bcrypt.hash(password, 10);
 
         // Simpan
-        return await userRepository.create({
+        return await userRepository.createWithRoles({
 
-            uid_user,
+            user: {
+                uid_user,
 
-            username,
+                username,
 
-            password: hashedPassword,
+                password: hashedPassword,
 
-            role,
+                uid_atlet: uid_atlet || null,
 
-            uid_atlet: uid_atlet || null,
+                uid_pelatih: uid_pelatih || null,
 
-            uid_pelatih: uid_pelatih || null,
+                created_by_uid: actor.uid_user,
 
-            created_by_uid: actor.uid_user,
+                updated_by_uid: actor.uid_user
 
-            updated_by_uid: actor.uid_user
+            },
+
+            roles: roleRecords.map(
+                (role) => role.uid_role
+            )
 
         });
 
@@ -124,7 +391,7 @@ const userService = {
         const {
             username,
             password,
-            role,
+            roles,
             uid_atlet,
             uid_pelatih
         } = body;
@@ -144,56 +411,102 @@ const userService = {
             }
         }
 
-        if (
-            actor.role === "Manajemen" &&
-            role === "Admin"
-        ) {
-            throw new AppError(
-                "Manager tidak memiliki izin untuk menetapkan role Admin",
-                HTTP_STATUS.FORBIDDEN
-            );
-        }
+        // Validaso Role Jika Berubah
+        let roleRecords = null;
 
-        if (
-            actor.role === "Manajermen" &&
-            existingUser.role === "Admin"
-        ) {
-            throw new AppError(
-                "Manajemen tidak memiliki izin untuk mengubah user Admin",
-                HTTP_STATUS.FORBIDDEN
-            );
+        if (roles) {
+
+            if (
+                !Array.isArray(roles) ||
+                roles.length === 0
+            ) {
+                
+                throw new AppError(
+                    "Minimal satu role wajib dipilih",
+                    HTTP_STATUS.BAD_REQUEST
+                );
+            }
+
+            const uniqueRoles = 
+                [...new Set(roles)];
+
+            if (
+                uniqueRoles.includes("SUPERADMIIN")
+            ) {
+
+                throw new AppError(
+                    "Role Superadmin tidak dapat ditetapkan melalui menu User",
+                    HTTP_STATUS.FORBIDDEN
+                );
+            }
+
+            if (
+                uniqueRoles.includes("ADMIN") &&
+                !actor.roles?.includes("SUPERADMIN")
+            ) {
+
+                throw new AppError(
+                    "Hanya Superadmin yang dapat menetapkan role Admin",
+                    HTTP_STATUS.FORBIDDEN
+                );
+            }
+
+            roleRecords =
+                await userRepository.findRolesByCodes(
+                    uniqueRoles
+                );
+
+            if (
+                roleRecords.length !==
+                uniqueRoles.length
+            ) {
+
+                throw new AppError(
+                    "Terdapat role yang tidak valid",
+                    HTTP_STATUS.BAD_REQUEST
+                );
+            }
         }
 
         const data = {
 
             username,
 
-            role,
+            uid_atlet:
+                uid_atlet ?? existingUser.uid_atlet,
 
-            uid_atlet: uid_atlet || null,
+            uid_pelatih:
+                uid_pelatih ?? existingUser.uid_pelatih,
 
-            uid_pelatih: uid_pelatih || null,
-
-            updated_by_uid: actor.uid_user
-
+            updated_by_uid:
+                actor.uid_user
+            
         };
 
         if (password) {
 
-            data.password =
-                await bcrypt.hash(password, 10);
-
+            data.password = 
+                await bcrypt.hash(
+                    password,
+                    10
+                );
         }
 
-        return await userRepository.update(
+        return await userRepository.updateWithRoles(
             uid_user,
-            data
+            data,
+            roleRecords
+                ? roleRecords.map(
+                    (role) => role.uid_role
+                )
+                : null
         );
 
+       
     },
 
     // ===========================
-    // DELETE USER
+    // SOFT DELETE USER
     // ===========================
     deleteUser: async (
         uid_user,
@@ -214,12 +527,24 @@ const userService = {
             );
         }
 
+        // Superadmin tidak menghaous akun sendiri
+        if (actor.uid_user === uid_user) {
+            throw new AppError(
+                "Anda tidak bisa menonaktifkan akun sendiri.",
+                HTTP_STATUS.FORBIDDEN
+            )
+        }
+
+        const targetRoles = existingUser.user_roles.map(
+            (item) => item.role.kode_role
+        );
+
         if (
-            actor.role === "Manajemen" &&
-            existingUser.role === "Admin"
+            actor.role?.includes("ADMIN") &&
+            targetRoles.includes("SUPERADMIN")
         ) {
             throw new AppError(
-                "Manajemen tidak memiliki izin untuk menonaktifkan user Admin.",
+                "Admin tidak memiliki izin untuk menonaktifkan user Superadmin.",
                 HTTP_STATUS.FORBIDDEN
             );
         }
@@ -229,6 +554,103 @@ const userService = {
             actor.uid_user
         );
 
+    },
+
+    // Reactive User
+    reactiveUser: async (
+        uid_user,
+        actor
+    ) => {
+
+        const existingUser =
+            await userRepository.findByIdIncludeDeleted(
+                uid_user
+            );
+
+        if (!existingUser) {
+            throw new AppError(
+                "User tidak ditemukan",
+                HTTP_STATUS.NOT_FOUND
+            );
+        }
+
+        if (!existingUser.deleted_at) {
+            throw new AppError(
+                "User sudah dalam keadaan aktif",
+                HTTP_STATUS.BAD_REQUEST
+            );
+        }
+
+        return await userRepository.reactivate(
+            uid_user,
+            actor.uid_user
+        );
+    },
+
+    // Delete Permanent
+    deleteUserPermanent: async (
+        uid_user,
+        actor
+    ) => {
+
+        const existingUser = 
+            await userRepository.findById(uid_user);
+
+        if (!existingUser) {
+
+            throw new AppError(
+                "User tidak ditemukan",
+                HTTP_STATUS.NOT_FOUND
+            );
+        }
+
+        // Tidak bisa hapus diri sendiri
+        if (actor.uid_user === uid_user) {
+            
+            throw new AppError(
+                "Anda tidak dapat menghapus akun sendiri secara permanen.",
+                HTTP_STATUS.FORBIDDEN
+            );
+        }
+
+        const targetRoles = 
+            existingUser.user_roles.map(
+                (item) => item.role.kode_role
+            );
+
+        // Proteksi Superadmin
+        if (targetRoles.includes("SUPERADMIN")) {
+
+            throw new AppError(
+                "User Superadmin tidak dapat dihapus permanen melalui menu User",
+                HTTP_STATUS.FORBIDDEN
+            );
+        }
+
+        // Harus sudah dinonaktifkan dulu
+        if (!existingUser.deleted_at) {
+
+            throw new AppError(
+                "User harus dinonaktifkan terlebih dahulu sebelum dihapus permanen.",
+                HTTP_STATUS.BAD_REQUEST
+            );
+        }
+
+        // Cek apakah punya histori
+        const hasHistory = 
+            await userRepository.hasUserHistory(uid_user);
+
+        if (hasHistory) {
+
+            throw new AppError(
+                "User tidak dapat dihapus permanen karena memiliki history aktivitas.",
+                HTTP_STATUS.CONFLICT
+            );
+        }
+
+        return await userRepository.hardDelete(
+            uid_user
+        );
     }
 
 };

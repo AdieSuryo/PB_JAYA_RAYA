@@ -3,7 +3,9 @@ import express from "express";
 import pelatihController from "./pelatih.controller.js";
 
 import authMiddleware from "../../middleware/authMiddleware.js";
+import uploadMiddleware from "../../middleware/uploadMiddleware.js";
 import authorize from "../../middleware/roleMiddleware.js";
+import authorizePermission from "../../middleware/authorizePermission.js";
 
 import validate from "../../middleware/validationMiddleware.js";
 
@@ -21,7 +23,7 @@ const router = express.Router();
 router.get(
     "/",
     authMiddleware,
-    authorize("Admin", "Manajemen"),
+    authorizePermission("coach.read"),
     pelatihController.getAllPelatih
 );
 
@@ -32,12 +34,7 @@ router.get(
 router.get(
     "/:id",
     authMiddleware,
-    authorize(
-        "Admin",
-        "Manajemen",
-        "pelatih_teknik",
-        "pelatih_fisik"
-    ),
+    authorizePermission("coach.read"),
     pelatihController.getPelatihById
 );
 
@@ -48,7 +45,8 @@ router.get(
 router.post(
     "/",
     authMiddleware,
-    authorize("Manajemen"),
+    authorizePermission("coach.create"),
+    uploadMiddleware.single("foto_pelatih"),
     validate(createPelatihSchema),
     pelatihController.createPelatih
 );
@@ -60,7 +58,8 @@ router.post(
 router.put(
     "/:id",
     authMiddleware,
-    authorize("Manajemen"),
+    authorizePermission("coach.update"),
+    uploadMiddleware.single("foto_pelatih"),
     validate(updatePelatihSchema),
     pelatihController.updatePelatih
 );
@@ -72,7 +71,7 @@ router.put(
 router.delete(
     "/:id",
     authMiddleware,
-    authorize("Manajemen"),
+    authorizePermission("coach.delete"),
     pelatihController.deletePelatih
 );
 

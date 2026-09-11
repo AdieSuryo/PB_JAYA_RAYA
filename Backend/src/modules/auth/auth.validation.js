@@ -1,8 +1,6 @@
 import Joi from "joi";
 
-// =====================================
-// REGISTER ADMIN
-// =====================================
+// Register Admin
 export const registerAdminSchema = Joi.object({
 
     username: Joi.string()
@@ -25,9 +23,7 @@ export const registerAdminSchema = Joi.object({
 });
 
 
-// =====================================
-// LOGIN
-// =====================================
+// Login
 export const loginSchema = Joi.object({
 
     username: Joi.string()
