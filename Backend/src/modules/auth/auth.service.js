@@ -123,15 +123,29 @@ const authService = {
 
         }
 
-        // ===============================
-        // Generate JWT
-        // ===============================
-        const token =
-            generateToken(user);
+        // Ambil Role
+        const roles = user.user_roles.map((item) => ({
+            uid_role: item.role.uid_role,
+            nama_role: item.role.nama_role,
+            kode_role: item.role.kode_role
+        }));
 
+        // Validasi Role
+        if (roles.length === 0) {
+            throw new AppError(
+                "User belum memiliki role",
+                HTTP_STATUS.FORBIDDEN
+            );
+        }
+
+        // Ambil Kode Role
+        const roleCodes =
+            roles.map((role) => role.kode_role);
+
+        // Profile
         let profile = null;
 
-        if (user.role === "Atlet") {
+        if (roleCodes.includes("ATLET")) {
 
             profile = user.atlet_profile;
 
@@ -139,9 +153,9 @@ const authService = {
 
         if (
 
-            user.role === "pelatih_teknik" ||
+            roleCodes.includes("PELATIH_TEKNIK") ||
 
-            user.role === "pelatih_fisik"
+            roleCodes.includes("PELATIH_FISIK")
 
         ) {
 
@@ -149,6 +163,17 @@ const authService = {
 
         }
 
+        // Generate JWT
+        const token =
+            generateToken({
+                uid_user: user.uid_user,
+                username: user.username,
+                roles: roleCodes,
+                uid_atlet: user.uid_atlet,
+                uid_pelatih: user.uid_pelatih
+            });
+
+        // Response
         return {
 
             token,
@@ -159,7 +184,7 @@ const authService = {
 
                 username: user.username,
 
-                role: user.role,
+                roles,
 
                 profile
 

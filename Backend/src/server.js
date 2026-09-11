@@ -8,19 +8,29 @@ import { connectDB, disconnectDB } from "./config/db.js";
 // ==============================
 import { authRoutes } from "./modules/auth/index.js";
 import { userRoutes } from "./modules/users/index.js";
+import { accessRoutes } from "./modules/access/index.js";
 import { atletRoutes } from "./modules/atlet/index.js";
 import { pelatihRoutes } from "./modules/pelatih/index.js";
 import { provinsiRoutes } from "./modules/provinsi/index.js";
-import { atletPelatihRoutes } from "./modules/atletPelatih/index.js";
+
 
 import errorHandler from "./middleware/errorHandler.js";
 import prismaErrorHandler from "./middleware/prismaErrorHandler.js";
+
+import cors from "cors";
 
 config();
 
 await connectDB();
 
 const app = express();
+
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    })
+);
 
 // ==============================
 // MIDDLEWARE
@@ -35,15 +45,16 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/users", userRoutes);
 
+app.use("/api/access", accessRoutes)
+
 app.use("/api/atlet", atletRoutes);
 
 app.use("/api/pelatih", pelatihRoutes);
 
 app.use("/api/provinsi", provinsiRoutes);
 
-app.use("/api/atlet-pelatih", atletPelatihRoutes);
 
-app.use(prismaErrorHandler)
+app.use(prismaErrorHandler);
 
 app.use(errorHandler);
 

@@ -45,6 +45,7 @@ const pelatihController = {
             const data =
                 await pelatihService.createPelatih(
                     req.body,
+                    req.file,
                     req.user
                 );
 

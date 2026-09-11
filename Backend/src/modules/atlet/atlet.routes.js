@@ -3,8 +3,9 @@ import express from "express";
 import atletController from "./atlet.controller.js";
 
 import authMiddleware from "../../middleware/authMiddleware.js";
+import uploadMiddleware from "../../middleware/uploadMiddleware.js";
 import authorize from "../../middleware/roleMiddleware.js";
-
+import authorizePermission from "../../middleware/authorizePermission.js";
 import validate from "../../middleware/validationMiddleware.js";
 
 import {
@@ -24,10 +25,7 @@ router.get(
 
     authMiddleware,
 
-    authorize(
-        "Admin",
-        "Manajemen"
-    ),
+    authorizePermission("athlete.read"),
 
     atletController.getAllAtlet
 
@@ -43,13 +41,7 @@ router.get(
 
     authMiddleware,
 
-    authorize(
-        "Admin",
-        "Manajemen",
-        "pelatih_teknik",
-        "pelatih_fisik",
-        "Atlet"
-    ),
+    authorizePermission("athlete.read"),
 
     atletController.getAtletById
 
@@ -65,10 +57,9 @@ router.post(
 
     authMiddleware,
 
-    authorize(
-        "Admin",
-        "Manajemen"
-    ),
+    authorizePermission("athlete.create"),
+
+    uploadMiddleware.single("foto_atlet"),
 
     validate(createAtletSchema),
 
@@ -86,10 +77,9 @@ router.put(
 
     authMiddleware,
 
-    authorize(
-        "Admin",
-        "Manajemen"
-    ),
+    authorizePermission("athlete.update"),
+
+    uploadMiddleware.single("foto_atlet"),
 
     validate(updateAtletSchema),
 
@@ -107,10 +97,7 @@ router.delete(
 
     authMiddleware,
 
-    authorize(
-        "Admin",
-        "Manajemen"
-    ),
+    authorizePermission("athlete.delete"),
 
     atletController.deleteAtlet
 

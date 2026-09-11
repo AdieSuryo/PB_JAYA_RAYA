@@ -52,6 +52,7 @@ const atletController = {
 
             const atlet = await atletService.createAtlet(
                 req.body,
+                req.file,
                 req.user
             );
 

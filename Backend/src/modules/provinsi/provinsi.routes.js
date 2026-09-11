@@ -24,8 +24,8 @@ router.get(
     authMiddleware,
 
     authorize(
-        "Admin",
-        "Manajemen"
+        "SUPERADMIN",
+        "ADMIN"
     ),
 
     provinsiController.getAllProvinsi
@@ -43,8 +43,8 @@ router.get(
     authMiddleware,
 
     authorize(
-        "Admin",
-        "Manajemen"
+        "SUPERADMIN",
+        "ADMIN"
     ),
 
     provinsiController.getProvinsiById
@@ -62,7 +62,7 @@ router.post(
     authMiddleware,
 
     authorize(
-        "Admin"
+        "SUPERADMIN"
     ),
 
     validate(createProvinsiSchema),
@@ -82,7 +82,7 @@ router.put(
     authMiddleware,
 
     authorize(
-        "Admin"
+        "SUPERADMIN"
     ),
 
     validate(updateProvinsiSchema),
@@ -102,7 +102,7 @@ router.delete(
     authMiddleware,
 
     authorize(
-        "Admin"
+        "SUPERADMIN"
     ),
 
     provinsiController.deleteProvinsi
